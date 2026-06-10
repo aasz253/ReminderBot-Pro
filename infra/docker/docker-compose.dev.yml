@@ -1,0 +1,162 @@
+version: "3.9"
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  app-network:
+    driver: bridge
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: reminderbot-postgres-dev
+    restart: unless-stopped
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-reminderbot}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-reminderbot_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-reminderbot_dev}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-reminderbot}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  redis:
+    image: redis:7-alpine
+    container_name: reminderbot-redis-dev
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    networks:
+      - app-network
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  backend:
+    build:
+      context: ../../backend
+      dockerfile: Dockerfile.dev
+    container_name: reminderbot-backend-dev
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - app-network
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../../backend:/app
+    env_file:
+      - ../../.env.dev
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-reminderbot}:${POSTGRES_PASSWORD:-reminderbot_dev}@postgres:5432/${POSTGRES_DB:-reminderbot_dev}
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+      ENVIRONMENT: development
+      LOG_LEVEL: debug
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  celery_worker:
+    build:
+      context: ../../backend
+      dockerfile: Dockerfile.dev
+    container_name: reminderbot-celery-worker-dev
+    restart: unless-stopped
+    command: celery -A app.core.celery_app worker --loglevel=debug --concurrency=2
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - app-network
+    volumes:
+      - ../../backend:/app
+    env_file:
+      - ../../.env.dev
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-reminderbot}:${POSTGRES_PASSWORD:-reminderbot_dev}@postgres:5432/${POSTGRES_DB:-reminderbot_dev}
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+      ENVIRONMENT: development
+
+  celery_beat:
+    build:
+      context: ../../backend
+      dockerfile: Dockerfile.dev
+    container_name: reminderbot-celery-beat-dev
+    restart: unless-stopped
+    command: celery -A app.core.celery_app beat --loglevel=debug
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - app-network
+    volumes:
+      - ../../backend:/app
+    env_file:
+      - ../../.env.dev
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-reminderbot}:${POSTGRES_PASSWORD:-reminderbot_dev}@postgres:5432/${POSTGRES_DB:-reminderbot_dev}
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+      ENVIRONMENT: development
+
+  frontend:
+    build:
+      context: ../../frontend
+      dockerfile: Dockerfile.dev
+    container_name: reminderbot-frontend-dev
+    restart: unless-stopped
+    depends_on:
+      - backend
+    networks:
+      - app-network
+    ports:
+      - "3000:3000"
+    volumes:
+      - ../../frontend:/app
+      - /app/node_modules
+    env_file:
+      - ../../.env.dev
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+      NEXT_PUBLIC_WS_URL: ws://localhost:8000/ws
+    command: npm run dev
+
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: reminderbot-nginx-dev
+    restart: unless-stopped
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - app-network
+    ports:
+      - "80:80"
+    volumes:
+      - ../../infra/nginx/nginx.dev.conf:/etc/nginx/nginx.conf:ro

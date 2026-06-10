@@ -1,0 +1,91 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+*.egg
+dist/
+build/
+*.so
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+coverage/
+htmlcov/
+*.coverage
+.coverage.*
+*.db
+.sqlite3
+
+# Node
+node_modules/
+.next/
+out/
+dist/
+.npm/
+.eslintcache
+*.tsbuildinfo
+.next.log
+
+# Environment
+.env
+.env.*
+!.env.example
+!.env.production.example
+!.env.dev
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+logs/
+/var/log/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+.terraform.lock.hcl
+
+# Docker
+.dockerignore
+
+# Secrets
+**/ssl/*.pem
+**/ssl/private/
+**/self-signed/
+certbot/
+
+# Backup
+backups/
+*.backup
+*.dump
+*.sql.gz
+
+# Misc
+*.pyc
+.python-version
+.autoenv
