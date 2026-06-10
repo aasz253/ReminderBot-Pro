@@ -1,0 +1,101 @@
+databases:
+  - name: reminderbot-postgres
+    databaseName: reminderbot
+    user: reminderbot
+    plan: free
+    region: oregon
+    ipAllowList: []
+
+  - name: reminderbot-redis
+    plan: free
+    region: oregon
+    maxmemoryPolicy: allkeys-lru
+
+services:
+  - type: web
+    name: reminderbot-backend
+    runtime: docker
+    repo: https://github.com/aasz253/ReminderBot-Pro
+    region: oregon
+    plan: free
+    branch: main
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: LOG_LEVEL
+        value: info
+      - key: DEBUG
+        value: false
+      - key: FRONTEND_URL
+        value: https://your-app.vercel.app
+      - key: ALLOWED_ORIGINS
+        value: '["https://your-app.vercel.app"]'
+      - key: DATABASE_URL
+        fromDatabase:
+          name: reminderbot-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromDatabase:
+          name: reminderbot-redis
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: STRIPE_PUBLISHABLE_KEY
+        sync: false
+      - key: SENTRY_DSN
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: WHATSAPP_API_URL
+        sync: false
+      - key: WHATSAPP_API_TOKEN
+        sync: false
+      - key: AFRICAS_TALKING_API_KEY
+        sync: false
+      - key: AFRICAS_TALKING_USERNAME
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GITHUB_CLIENT_ID
+        sync: false
+      - key: GITHUB_CLIENT_SECRET
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: FCM_SERVER_KEY
+        sync: false
+      - key: MPESA_CONSUMER_KEY
+        sync: false
+      - key: MPESA_CONSUMER_SECRET
+        sync: false
+      - key: MPESA_PASSKEY
+        sync: false
+      - key: MPESA_SHORTCODE
+        sync: false
+      - key: MPESA_ENVIRONMENT
+        sync: false
+      - key: AIRTEL_API_KEY
+        sync: false
+      - key: AIRTEL_API_SECRET
+        sync: false
