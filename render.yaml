@@ -20,7 +20,7 @@ services:
     plan: free
     branch: main
     rootDir: backend
-    dockerfilePath: ./Dockerfile
+    dockerfilePath: Dockerfile
     healthCheckPath: /health
     envVars:
       - key: ENVIRONMENT
