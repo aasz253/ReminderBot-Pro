@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
+RUN pip config set global.timeout 120 && pip config set global.retries 5
 COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
