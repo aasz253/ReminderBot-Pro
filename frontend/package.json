@@ -38,7 +38,7 @@
     "cmdk": "^0.2.0",
     "cookies-next": "^4.1.0",
     "date-fns": "^2.30.0",
-    "framer-motion": "^10.16.5",
+    "framer-motion": "^12.40.0",
     "jose": "^5.1.1",
     "lucide-react": "^0.294.0",
     "next": "^16.0.0",
