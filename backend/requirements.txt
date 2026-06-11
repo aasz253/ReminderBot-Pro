@@ -20,7 +20,7 @@ python-dotenv==1.0.0
 psycopg2-binary==2.9.9
 email-validator==2.1.0
 pyotp==2.9.0
-qrcode==7.4.2
+qrcode==8.2
 Pillow==10.1.0
 stripe==7.8.0
 paypalrestsdk==1.13.3
