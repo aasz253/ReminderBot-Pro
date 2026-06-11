@@ -17,7 +17,7 @@ python-dateutil==2.8.2
 pytz==2023.3
 sentry-sdk==1.38.0
 python-dotenv==1.0.0
-psycopg2-binary==2.9.9
+psycopg2-binary==2.9.12
 email-validator==2.1.0
 pyotp==2.9.0
 qrcode==7.4.2
