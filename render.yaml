@@ -1,16 +1,3 @@
-databases:
-  - name: reminderbot-postgres
-    databaseName: reminderbot
-    user: reminderbot
-    plan: free
-    region: oregon
-    ipAllowList: []
-
-  - name: reminderbot-redis
-    plan: free
-    region: oregon
-    maxmemoryPolicy: allkeys-lru
-
 services:
   - type: web
     name: reminderbot-backend
@@ -33,13 +20,9 @@ services:
       - key: ALLOWED_ORIGINS
         value: '["https://your-app.vercel.app"]'
       - key: DATABASE_URL
-        fromDatabase:
-          name: reminderbot-postgres
-          property: connectionString
+        sync: false
       - key: REDIS_URL
-        fromDatabase:
-          name: reminderbot-redis
-          property: connectionString
+        sync: false
       - key: SECRET_KEY
         generateValue: true
       - key: RESEND_API_KEY
