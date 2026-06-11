@@ -6,6 +6,8 @@ from email.mime.multipart import MIMEMultipart
 from typing import Optional, List, Tuple
 from uuid import UUID
 
+import resend
+
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_, or_
@@ -138,20 +140,36 @@ class NotificationService:
     async def send_email_notification(
         self, user: User, reminder: Reminder, notification: Notification
     ) -> None:
-        if not settings.SMTP_HOST or not settings.SMTP_USER:
-            raise ValueError("SMTP not configured")
-
         html_content = self.content_generator.reminder_notification_email(reminder)
+        subject = f"Reminder: {reminder.title}"
+        text_content = (
+            f"Reminder: {reminder.title}\n\n{reminder.description or ''}\n\n"
+            f"Time: {reminder.reminder_time}"
+        )
+
+        if settings.RESEND_API_KEY:
+            try:
+                resend.api_key = settings.RESEND_API_KEY
+                resend.Emails.send({
+                    "from": f"{settings.SMTP_FROM_NAME} <{settings.SMTP_FROM_EMAIL}>",
+                    "to": [user.email],
+                    "subject": subject,
+                    "text": text_content,
+                    "html": html_content,
+                })
+                return
+            except Exception as e:
+                raise RuntimeError(f"Resend email failed: {str(e)}")
+
+        if not settings.SMTP_HOST or not settings.SMTP_USER:
+            raise ValueError("No email provider configured (set RESEND_API_KEY or SMTP settings)")
 
         msg = MIMEMultipart("alternative")
-        msg["Subject"] = f"Reminder: {reminder.title}"
+        msg["Subject"] = subject
         msg["From"] = f"{settings.SMTP_FROM_NAME} <{settings.SMTP_FROM_EMAIL}>"
         msg["To"] = user.email
 
-        text_part = MIMEText(
-            f"Reminder: {reminder.title}\n\n{reminder.description or ''}\n\nTime: {reminder.reminder_time}",
-            "plain",
-        )
+        text_part = MIMEText(text_content, "plain")
         html_part = MIMEText(html_content, "html")
         msg.attach(text_part)
         msg.attach(html_part)

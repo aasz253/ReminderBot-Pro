@@ -16,6 +16,8 @@ class Settings(BaseSettings):
 
     ALLOWED_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:8000"]
 
+    RESEND_API_KEY: Optional[str] = None
+
     SMTP_HOST: str = "smtp.gmail.com"
     SMTP_PORT: int = 587
     SMTP_USER: str = ""
@@ -60,6 +62,15 @@ class Settings(BaseSettings):
     SENTRY_DSN: Optional[str] = None
 
     OPENAI_API_KEY: Optional[str] = None
+    OPENROUTER_API_KEY: Optional[str] = None
+    OPENROUTER_MODEL: str = "openai/gpt-4o"
+    OPENROUTER_FALLBACK_MODELS: list[str] = [
+        "google/gemini-2.0-flash-001",
+        "mistralai/mistral-7b-instruct",
+        "meta-llama/llama-3.2-3b-instruct",
+        "microsoft/phi-3-mini-128k-instruct",
+        "deepseek/deepseek-chat",
+    ]
 
     FRONTEND_URL: str = "http://localhost:3000"
     BACKEND_URL: str = "http://localhost:8000"

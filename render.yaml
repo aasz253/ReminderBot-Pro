@@ -43,6 +43,8 @@ services:
           property: connectionString
       - key: SECRET_KEY
         generateValue: true
+      - key: RESEND_API_KEY
+        sync: false
       - key: SMTP_HOST
         sync: false
       - key: SMTP_PORT
@@ -78,6 +80,12 @@ services:
       - key: GITHUB_CLIENT_SECRET
         sync: false
       - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: OPENROUTER_MODEL
+        sync: false
+      - key: OPENROUTER_FALLBACK_MODELS
         sync: false
       - key: VAPID_PUBLIC_KEY
         sync: false

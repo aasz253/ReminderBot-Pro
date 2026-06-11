@@ -8,8 +8,8 @@ import { TeamList } from "@/components/team/team-list"
 import { CreateTeamDialog } from "@/components/team/create-team-dialog"
 
 const mockTeams = [
-  { id: "1", name: "Engineering", description: "Engineering team reminders", member_count: 5, owner_id: "me" },
-  { id: "2", name: "Marketing", description: "Marketing campaigns and deadlines", member_count: 3, owner_id: "me" },
+  { id: "1", name: "Engineering", description: "Engineering team reminders", member_count: 5, owner_id: "me", created_at: "2026-01-15T08:00:00Z" },
+  { id: "2", name: "Marketing", description: "Marketing campaigns and deadlines", member_count: 3, owner_id: "me", created_at: "2026-02-10T12:00:00Z" },
 ]
 
 export default function TeamPage() {

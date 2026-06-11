@@ -14,17 +14,56 @@ from app.models.reminder import Reminder, Priority
 class AIService:
     def __init__(self):
         self.use_openai = bool(settings.OPENAI_API_KEY)
-        self.model = "gpt-3.5-turbo" if self.use_openai else None
+        self.use_openrouter = bool(settings.OPENROUTER_API_KEY)
+        self.use_ai = self.use_openai or self.use_openrouter
+
+        if self.use_openai:
+            self.models = ["gpt-3.5-turbo"]
+            self.api_key = settings.OPENAI_API_KEY
+            self.api_base = "https://api.openai.com/v1"
+        elif self.use_openrouter:
+            self.models = [settings.OPENROUTER_MODEL, *settings.OPENROUTER_FALLBACK_MODELS]
+            self.api_key = settings.OPENROUTER_API_KEY
+            self.api_base = "https://openrouter.ai/api/v1"
+        else:
+            self.models = []
+            self.api_key = None
+            self.api_base = None
+
+    async def _chat_completion(self, messages: list, temperature: float = 0.1) -> Optional[dict]:
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+        }
+        if self.use_openrouter:
+            headers["HTTP-Referer"] = settings.FRONTEND_URL
+            headers["X-Title"] = settings.APP_NAME
+
+        for model in self.models:
+            try:
+                async with httpx.AsyncClient(timeout=15) as client:
+                    response = await client.post(
+                        f"{self.api_base}/chat/completions",
+                        headers=headers,
+                        json={"model": model, "messages": messages, "temperature": temperature},
+                    )
+                    if response.status_code == 200:
+                        data = response.json()
+                        content = data["choices"][0]["message"]["content"]
+                        return json.loads(content)
+            except Exception:
+                continue
+        return None
 
     async def parse_natural_language(self, query: str) -> dict:
-        if self.use_openai:
+        if self.use_ai:
             try:
-                return await self._parse_with_openai(query)
+                return await self._parse_with_ai(query)
             except Exception:
                 return self._parse_rule_based(query)
         return self._parse_rule_based(query)
 
-    async def _parse_with_openai(self, query: str) -> dict:
+    async def _parse_with_ai(self, query: str) -> dict:
         prompt = (
             "Parse the following reminder request and return JSON with fields: "
             "title, description, reminder_time (ISO 8601 with timezone), priority (low/medium/high/urgent). "
@@ -32,34 +71,18 @@ class AIService:
             f"Query: {query}"
         )
 
-        async with httpx.AsyncClient(timeout=30) as client:
-            response = await client.post(
-                "https://api.openai.com/v1/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {settings.OPENAI_API_KEY}",
-                    "Content-Type": "application/json",
-                },
-                json={
-                    "model": self.model,
-                    "messages": [
-                        {"role": "system", "content": "You are a reminder parsing assistant. Return only JSON."},
-                        {"role": "user", "content": prompt},
-                    ],
-                    "temperature": 0.1,
-                },
-            )
-
-            if response.status_code == 200:
-                data = response.json()
-                content = data["choices"][0]["message"]["content"]
-                parsed = json.loads(content)
-                return {
-                    "title": parsed.get("title", query),
-                    "reminder_time": parsed.get("reminder_time"),
-                    "timezone": parsed.get("timezone", "UTC"),
-                    "priority": parsed.get("priority", "medium"),
-                    "description": parsed.get("description"),
-                }
+        parsed = await self._chat_completion([
+            {"role": "system", "content": "You are a reminder parsing assistant. Return only JSON."},
+            {"role": "user", "content": prompt},
+        ])
+        if parsed:
+            return {
+                "title": parsed.get("title", query),
+                "reminder_time": parsed.get("reminder_time"),
+                "timezone": parsed.get("timezone", "UTC"),
+                "priority": parsed.get("priority", "medium"),
+                "description": parsed.get("description"),
+            }
 
         return self._parse_rule_based(query)
 
@@ -160,7 +183,7 @@ class AIService:
             {"title": "Take medication", "description": "Health reminder", "priority": "high", "category": "health"},
         ]
 
-        if self.use_openai:
+        if self.use_ai:
             try:
                 ai_suggestions = await self._generate_ai_suggestions(user)
                 if ai_suggestions:
@@ -175,23 +198,10 @@ class AIService:
             "Generate 5 personalized reminder suggestions for a productivity app user. "
             "Return JSON array of objects with title, description, priority (low/medium/high/urgent), category."
         )
-        async with httpx.AsyncClient(timeout=30) as client:
-            response = await client.post(
-                "https://api.openai.com/v1/chat/completions",
-                headers={"Authorization": f"Bearer {settings.OPENAI_API_KEY}"},
-                json={
-                    "model": self.model,
-                    "messages": [
-                        {"role": "system", "content": "Return only JSON."},
-                        {"role": "user", "content": prompt},
-                    ],
-                    "temperature": 0.7,
-                },
-            )
-            if response.status_code == 200:
-                content = response.json()["choices"][0]["message"]["content"]
-                return json.loads(content)
-        return None
+        return await self._chat_completion([
+            {"role": "system", "content": "Return only JSON."},
+            {"role": "user", "content": prompt},
+        ], temperature=0.7)
 
     async def generate_study_schedule(self, exam_date: datetime, subjects: List[str]) -> List[dict]:
         now = datetime.now(timezone.utc)
